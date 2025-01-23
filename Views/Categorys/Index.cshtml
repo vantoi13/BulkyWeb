@@ -1,4 +1,4 @@
-@model IEnumerable<BulkyWeb.Models.Category>
+@model IEnumerable<BulkyWeb.ViewModels.Categorys.CategoryViewModel>
 
 @{
     ViewData["Title"] = "Index";
@@ -9,7 +9,7 @@
 <p>
     <a asp-action="Create">Create New</a>
 </p>
-<table class="table">
+<table class="table table-bordered table-striped">
     <thead>
         <tr>
             <th>
