@@ -19,8 +19,7 @@ builder.Services.AddRazorPages(
 {
 
 });
-builder.Services.AddTransient<IEmailSender, EmailSenderService>();
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
 
 builder.Services.AddIdentity<User, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -53,7 +52,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+AddScoped();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -75,6 +74,21 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    DbInitializer.Seed(services);
+}
 
 app.Run();
+
+void AddScoped()
+{
+    builder.Services.AddAutoMapper(typeof(Program));
+    builder.Services.AddScoped<IProductService, ProductService>();
+    builder.Services.AddScoped<ICategoryService, CategoryService>();
+    builder.Services.AddTransient<IEmailSender, EmailSenderService>();
+    builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+    builder.Services.AddTransient<IStorageService, FileStorageService>();
+}

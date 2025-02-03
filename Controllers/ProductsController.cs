@@ -7,23 +7,34 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using BulkyWeb.Data;
 using BulkyWeb.Models;
+using BulkyWeb.Services;
+using BulkyWeb.ViewModels.Products;
 
 namespace BulkyWeb.Controllers
 {
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
-
-        public ProductsController(ApplicationDbContext context)
+        int a = 8;
+        private readonly IProductService _productService;
+        public ProductsController(ApplicationDbContext context , IProductService productService)
         {
             _context = context;
+            _productService = productService;
         }
 
         // GET: Products
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder, string currentFilter, string searchString, int? pageNumber)
         {
-            var applicationDbContext = _context.Products.Include(p => p.Category);
-            return View(await applicationDbContext.ToListAsync());
+
+            ViewData["TitleSortParm"] = String.IsNullOrEmpty(sortOrder) || sortOrder.Equals("title") ? "title_desc" : "";
+            ViewData["AuthorSortParm"] = String.IsNullOrEmpty(sortOrder) || sortOrder.Equals("author") ? "author" : "";
+            ViewData["ListPriceSortParm"] = String.IsNullOrEmpty(sortOrder) || sortOrder.Equals("listprice") ? "listprice" : "";
+
+            ViewData["CurrentFilter"] = searchString;
+            ViewData["CurrentSort"] = sortOrder;
+            // var applicationDbContext = _context.Products.Include(p => p.Category);
+            return View(await _productService.GetAllFilter(sortOrder, currentFilter, searchString, pageNumber, a));
         }
 
         // GET: Products/Details/5
@@ -34,9 +45,8 @@ namespace BulkyWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Products
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _productService.GetProduct(id.Value);
+
             if (product == null)
             {
                 return NotFound();
@@ -48,7 +58,7 @@ namespace BulkyWeb.Controllers
         // GET: Products/Create
         public IActionResult Create()
         {
-            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Id");
+            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Name");
             return View();
         }
 
@@ -57,16 +67,17 @@ namespace BulkyWeb.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,CategoryId,Title,Description,ISBN,Author,ListPrice,Price,Price50,Price100,ImagePath")] Product product)
+        public async Task<IActionResult> Create(ProductRequest request)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var result = await _productService.Create(request);
+                if (result != null)
+                    return RedirectToAction(nameof(Index));
+
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Id", product.CategoryId);
-            return View(product);
+            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Name", request.CategoryId);
+            return View(request);
         }
 
         // GET: Products/Edit/5
@@ -77,12 +88,12 @@ namespace BulkyWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Products.FindAsync(id);
+            var product = await _productService.GetProduct(id.Value);
             if (product == null)
             {
                 return NotFound();
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Id", product.CategoryId);
+            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Name", product.CategoryId);
             return View(product);
         }
 
@@ -91,34 +102,30 @@ namespace BulkyWeb.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,CategoryId,Title,Description,ISBN,Author,ListPrice,Price,Price50,Price100,ImagePath")] Product product)
+        public async Task<IActionResult> Edit(int id, ProductViewModel product)
         {
             if (id != product.Id)
             {
                 return NotFound();
             }
-
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
+                    var result = await _productService.Update(id, product);
+                    if (result)
+                    {
+                        return RedirectToAction(nameof(Index));
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ProductExists(product.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
+                ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Name", product.CategoryId);
                 return RedirectToAction(nameof(Index));
+
             }
-            ViewData["CategoryId"] = new SelectList(_context.Categorys, "Id", "Id", product.CategoryId);
             return View(product);
         }
 
@@ -130,9 +137,7 @@ namespace BulkyWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Products
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _productService.GetProduct(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -146,19 +151,9 @@ namespace BulkyWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product != null)
-            {
-                _context.Products.Remove(product);
-            }
-
-            await _context.SaveChangesAsync();
+            await _productService.Delete(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ProductExists(int id)
-        {
-            return _context.Products.Any(e => e.Id == id);
-        }
     }
 }
