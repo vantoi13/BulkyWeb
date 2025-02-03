@@ -1,21 +1,41 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using BulkyWeb.Models;
+using BulkyWeb.Services;
 
 namespace BulkyWeb.Controllers;
 
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    private readonly IProductService _productService;
+    public HomeController(ILogger<HomeController> logger , IProductService productService)
     {
         _logger = logger;
+        _productService = productService;
     }
 
-    public IActionResult Index()
+
+    public async Task<IActionResult> Index()
     {
-        return View();
+        return View(await _productService.GetProducts());
+    }
+
+    public async Task<IActionResult> Details(int? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var product = await _productService.GetProduct(id.Value);
+
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        return View(product);
     }
 
     public IActionResult Privacy()
