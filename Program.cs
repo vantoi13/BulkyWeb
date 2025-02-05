@@ -21,7 +21,7 @@ builder.Services.AddRazorPages(
 });
 
 
-builder.Services.AddIdentity<User, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddIdentity<AppUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>()
      .AddDefaultUI()
     .AddDefaultTokenProviders();
@@ -74,11 +74,18 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+// using (var scope = app.Services.CreateScope())
+// {
+//     var services = scope.ServiceProvider;
+//     DbInitializer.Seed(services);
+// }
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    DbInitializer.Seed(services);
+    var dbInitializer = services.GetRequiredService<DbInitializer>();
+    await dbInitializer.SeedDataAsync();
 }
+
 
 app.Run();
 
@@ -87,8 +94,20 @@ void AddScoped()
     builder.Services.AddAutoMapper(typeof(Program));
     builder.Services.AddScoped<IProductService, ProductService>();
     builder.Services.AddScoped<ICategoryService, CategoryService>();
-    builder.Services.AddTransient<IEmailSender, EmailSenderService>();
-    builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+    // builder.Services.AddTransient<IEmailSender, SendMailService>();
+    // builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+    var mailsetting = builder.Configuration.GetSection("MailSettings");
+    builder.Services.Configure<MailSettings>(mailsetting);
+    builder.Services.AddSingleton<IEmailSender, SendMailService>();
+    builder.Services.AddSingleton<IdentityErrorDescriber,AppIdentityErrorDescriber>();
+    builder.Services.AddScoped<DbInitializer>();
 
     builder.Services.AddTransient<IStorageService, FileStorageService>();
+    builder.Services.AddAuthorization(Options => {
+        Options.AddPolicy("ViewManageMenu",builder => {
+            builder.RequireAuthenticatedUser();
+            builder.RequireRole(RoleName.Administrator);
+        });
+    });
+
 }

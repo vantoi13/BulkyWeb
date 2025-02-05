@@ -9,9 +9,11 @@ using BulkyWeb.Data;
 using BulkyWeb.Models;
 using BulkyWeb.Services;
 using BulkyWeb.ViewModels.Categorys;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BulkyWeb.Controllers
-{
+{  
+     [Authorize(Roles =RoleName.Administrator)]
     public class CategorysController : Controller
     {
         private readonly ApplicationDbContext _context;

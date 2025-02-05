@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BulkyWeb.Models
 {
-    public class User : IdentityUser
-    {
+    // public class User : IdentityUser
+    // {
         
-    }
+    // }
 }
