@@ -9,9 +9,12 @@ using BulkyWeb.Data;
 using BulkyWeb.Models;
 using BulkyWeb.Services;
 using BulkyWeb.ViewModels.Products;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BulkyWeb.Controllers
 {
+    [Authorize(Roles = RoleName.Administrator)]
+
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
